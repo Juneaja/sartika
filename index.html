@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pinjaman Sartika</title>
+    <style>
+        :root {
+            --primary: #4CAF50;
+            --secondary: #2196F3;
+            --danger: #f44336;
+            --dark: #333;
+            --light: #f4f4f4;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #e0e0e0;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        #app-container {
+            width: 100%;
+            max-width: 400px;
+            background: white;
+            min-height: 100vh;
+            position: relative;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .page {
+            display: none;
+            padding: 20px;
+            flex-direction: column;
+            height: 100%;
+            box-sizing: border-box;
+        }
+
+        .page.active { display: flex; }
+
+        h2 { text-align: center; color: var(--dark); margin-bottom: 20px; }
+        
+        input, select {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        button.secondary { background-color: var(--secondary); }
+        button.outline { background-color: transparent; border: 1px solid var(--dark); color: var(--dark); }
+
+        .link {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+            color: var(--secondary);
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .card-info {
+            background: var(--light);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 5px solid var(--secondary);
+        }
+        .card-info h3 { margin: 0; font-size: 14px; color: #666; }
+        .card-info p { margin: 5px 0 0; font-size: 24px; font-weight: bold; color: var(--dark); }
+
+        .section {
+            background: #fff;
+            border: 1px solid #eee;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+
+        /* Notifikasi Lunas */
+        .lunas-notif {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3);
+            animation: slideDown 0.5s ease;
+        }
+        .lunas-notif h3 { margin: 0 0 5px 0; font-size: 18px; }
+        .lunas-notif p { margin: 0; font-size: 14px; opacity: 0.9; }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <!-- HALAMAN LOGIN -->
+    <div id="page-login" class="page active">
+        <h2>Login</h2>
+        <input type="text" id="login-user" placeholder="Username">
+        <input type="password" id="login-pass" placeholder="Password">
+        <button onclick="login()">Masuk</button>
+        <div class="link" onclick="showPage('page-register')">Belum punya akun? Register</div>
+        <div style="margin-top:10px; font-size:12px; color:#888; text-align:center;">
+            Created by: <b>Ngoding_asik</b> / <b>jun</b>
+        </div>
+    </div>
+
+    <!-- HALAMAN REGISTER -->
+    <div id="page-register" class="page">
+        <h2>Register Peminjam</h2>
+        <input type="text" id="reg-user" placeholder="Username">
+        <input type="password" id="reg-pass" placeholder="Password">
+        <button onclick="register()">Daftar</button>
+        <div class="link" onclick="showPage('page-login')">Sudah punya akun? Login</div>
+    </div>
+
+    <!-- HALAMAN USER -->
+    <div id="page-user" class="page">
+        <h2>Dashboard Peminjam</h2>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span id="user-name-display">User</span>
+            <button class="outline" style="width:auto; padding:5px 10px; font-size:12px;" onclick="logout()">Logout</button>
+        </div>
+        <hr>
+
+        <!-- Notifikasi Lunas -->
+        <div id="user-lunas-notif" style="display:none;"></div>
+
+        <div class="card-info">
+            <h3>Limit Pinjaman (Plafon)</h3>
+            <p>Rp <span id="user-limit">0</span></p>
+        </div>
+        
+        <div class="card-info" style="border-left-color: var(--danger);">
+            <h3>Sisa Pinjaman / Hutang</h3>
+            <p>Rp <span id="user-debt">0</span></p>
+        </div>
+
+        <div class="card-info" style="border-left-color: var(--primary);">
+            <h3>Jumlah Cicilan</h3>
+            <p><span id="user-pay-count">0</span> Kali</p>
+        </div>
+
+        <p style="text-align:center; font-size:12px; color:#888;">
+            created by : Ngoding_asik / Jun
+        </p>
+    </div>
+
+    <!-- HALAMAN ADMIN -->
+    <div id="page-admin" class="page">
+        <h2>Admin Panel</h2>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span>Admin</span>
+            <button class="outline" style="width:auto; padding:5px 10px; font-size:12px;" onclick="logout()">Logout</button>
+        </div>
+        <hr>
+
+        <!-- Tabel Daftar Peminjam -->
+        <div class="section">
+            <h3>Daftar Peminjam</h3>
+            <div style="max-height: 150px; overflow-y: auto;">
+                <table id="user-table">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Password</th>
+                            <th>Hutang</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Berikan Pinjaman -->
+        <div class="section">
+            <h3>Berikan Pinjaman Awal</h3>
+            <select id="admin-user-select-topup">
+                <option value="">Pilih User...</option>
+            </select>
+            <input type="number" id="admin-topup-amount" placeholder="Jumlah Pinjaman">
+            <button class="secondary" onclick="adminTopUp()">Berikan Pinjaman</button>
+        </div>
+
+        <!-- Bayar Cicilan -->
+        <div class="section" style="border-left: 4px solid var(--primary);">
+            <h3>Bayar Cicilan Bulanan</h3>
+            <select id="admin-user-select-pay">
+                <option value="">Pilih User...</option>
+            </select>
+            <input type="number" id="admin-pay-amount" placeholder="Jumlah Cicilan">
+            <button onclick="adminPayCicilan()">Bayar Cicilan</button>
+        </div>
+
+        <!-- Laporan -->
+        <div class="section">
+            <h3>Laporan Transaksi</h3>
+            <div style="max-height: 150px; overflow-y: auto;">
+                <table id="report-table">
+                    <thead>
+                        <tr>
+                            <th>Tgl</th>
+                            <th>User</th>
+                            <th>Jenis</th>
+                            <th>Jumlah</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Inisialisasi Data
+    if (!localStorage.getItem('app_users')) {
+        const defaultAdmin = {
+            username: 'admin', password: '123', role: 'admin',
+            limit: 0, debt: 0, payCount: 0
+        };
+        localStorage.setItem('app_users', JSON.stringify([defaultAdmin]));
+    }
+
+    if (!localStorage.getItem('app_transactions')) {
+        localStorage.setItem('app_transactions', JSON.stringify([]));
+    }
+
+    let currentUser = null;
+
+    // Navigasi
+    window.onload = function() { showPage('page-login'); };
+
+    function showPage(pageId) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+        
+        if(pageId === 'page-user') loadUserDashboard();
+        if(pageId === 'page-admin') loadAdminDashboard();
+    }
+
+    // Autentikasi
+    function register() {
+        const user = document.getElementById('reg-user').value;
+        const pass = document.getElementById('reg-pass').value;
+        
+        if(!user || !pass) return alert("Isi semua data!");
+
+        let users = JSON.parse(localStorage.getItem('app_users'));
+        if(users.find(u => u.username === user)) return alert("Username sudah terpakai!");
+
+        users.push({
+            username: user, password: pass, role: 'peminjam',
+            limit: 0, debt: 0, payCount: 0
+        });
+
+        localStorage.setItem('app_users', JSON.stringify(users));
+        alert("Registrasi berhasil! Silakan Login.");
+        showPage('page-login');
+    }
+
+    function login() {
+        const userIn = document.getElementById('login-user').value;
+        const passIn = document.getElementById('login-pass').value;
+        
+        let users = JSON.parse(localStorage.getItem('app_users'));
+        const foundUser = users.find(u => u.username === userIn && u.password === passIn);
+
+        if(foundUser) {
+            currentUser = foundUser;
+            showPage(foundUser.role === 'admin' ? 'page-admin' : 'page-user');
+        } else {
+            alert("Username atau Password salah!");
+        }
+    }
+
+    function logout() {
+        currentUser = null;
+        document.getElementById('login-user').value = '';
+        document.getElementById('login-pass').value = '';
+        showPage('page-login');
+    }
+
+    // Fungsi User
+    function loadUserDashboard() {
+        if(!currentUser) return;
+        
+        let users = JSON.parse(localStorage.getItem('app_users'));
+        let me = users.find(u => u.username === currentUser.username);
+        
+        document.getElementById('user-name-display').innerText = me.username;
+        document.getElementById('user-limit').innerText = me.limit.toLocaleString();
+        document.getElementById('user-debt').innerText = me.debt.toLocaleString();
+        document.getElementById('user-pay-count').innerText = me.payCount;
+
+        // Notifikasi Lunas
+        const notifBox = document.getElementById('user-lunas-notif');
+        if(me.debt === 0 && me.limit > 0) {
+            notifBox.style.display = 'block';
+            notifBox.innerHTML = `
+                <div class="lunas-notif">
+                    <h3>ðŸŽ‰ SELAMAT!</h3>
+                    <p>Pinjaman Anda telah LUNAS!</p>
+                </div>
+            `;
+        } else {
+            notifBox.style.display = 'none';
+        }
+    }
+
+    // Fungsi Admin
+    function loadAdminDashboard() {
+        let users = JSON.parse(localStorage.getItem('app_users'));
+        const peminjam = users.filter(u => u.role === 'peminjam');
+        
+        // Tabel Peminjam
+        const userTableBody = document.querySelector('#user-table tbody');
+        userTableBody.innerHTML = '';
+        
+        if(peminjam.length === 0) {
+            userTableBody.innerHTML = '<tr><td colspan="3" style="text-align:center">Belum ada peminjam</td></tr>';
+        } else {
+            peminjam.forEach(u => {
+                userTableBody.innerHTML += `<tr>
+                    <td>${u.username}</td>
+                    <td>${u.password}</td>
+                    <td>Rp ${u.debt.toLocaleString()}</td>
+                </tr>`;
+            });
+        }
+
+        // Dropdown
+        const selectTopup = document.getElementById('admin-user-select-topup');
+        const selectPay = document.getElementById('admin-user-select-pay');
+        selectTopup.innerHTML = '<option value="">Pilih User...</option>';
+        selectPay.innerHTML = '<option value="">Pilih User...</option>';
+        
+        peminjam.forEach(u => {
+            let opt1 = document.createElement('option');
+            opt1.value = u.username;
+            opt1.innerText = `${u.username} (Hutang: ${u.debt.toLocaleString()})`;
+            selectTopup.appendChild(opt1);
+
+            let opt2 = document.createElement('option');
+            opt2.value = u.username;
+            opt2.innerText = `${u.username} (Hutang: ${u.debt.toLocaleString()})`;
+            selectPay.appendChild(opt2);
+        });
+
+        // Laporan
+        let transactions = JSON.parse(localStorage.getItem('app_transactions'));
+        const reportBody = document.querySelector('#report-table tbody');
+        reportBody.innerHTML = '';
+        
+        transactions.reverse().forEach(t => {
+            reportBody.innerHTML += `<tr>
+                <td>${t.date}</td>
+                <td>${t.user}</td>
+                <td>${t.type}</td>
+                <td>${parseInt(t.amount).toLocaleString()}</td>
+            </tr>`;
+        });
+    }
+
+    function adminTopUp() {
+        const userSelect = document.getElementById('admin-user-select-topup');
+        const amount = parseInt(document.getElementById('admin-topup-amount').value);
+        
+        if(!amount || amount <= 0) return alert("Masukkan jumlah yang valid");
+        if(userSelect.value === "") return alert("Pilih user terlebih dahulu");
+        
+        let users = JSON.parse(localStorage.getItem('app_users'));
+        let targetIndex = users.findIndex(u => u.username === userSelect.value);
+        
+        users[targetIndex].limit += amount;
+        users[targetIndex].debt += amount; 
+        
+        localStorage.setItem('app_users', JSON.stringify(users));
+        addTransaction(users[targetIndex].username, 'Pencairan Pinjaman', amount);
+        
+        alert("Pinjaman berhasil diberikan!");
+        document.getElementById('admin-topup-amount').value = '';
+        loadAdminDashboard();
+    }
+
+    function adminPayCicilan() {
+        const userSelect = document.getElementById('admin-user-select-pay');
+        const amount = parseInt(document.getElementById('admin-pay-amount').value);
+        
+        if(!amount || amount <= 0) return alert("Masukkan jumlah cicilan yang valid");
+        if(userSelect.value === "") return alert("Pilih user terlebih dahulu");
+        
+        let users = JSON.parse(localStorage.getItem('app_users'));
+        let targetIndex = users.findIndex(u => u.username === userSelect.value);
+        
+        if(users[targetIndex].debt < amount) {
+            return alert("Jumlah cicilan melebihi hutang! Hutang user: " + users[targetIndex].debt);
+        }
+
+        users[targetIndex].debt -= amount;
+        users[targetIndex].payCount += 1;
+        
+        localStorage.setItem('app_users', JSON.stringify(users));
+        addTransaction(users[targetIndex].username, 'Pembayaran Cicilan', amount);
+        
+        alert("Cicilan berhasil dibayarkan!");
+        document.getElementById('admin-pay-amount').value = '';
+        loadAdminDashboard();
+    }
+
+    function addTransaction(username, type, amount) {
+        let txs = JSON.parse(localStorage.getItem('app_transactions'));
+        const now = new Date();
+        const dateString = `${now.getDate()}-${now.getMonth()+1}-${now.getFullYear()} ${now.getHours()}:${now.getMinutes()}`;
+        
+        txs.push({ user: username, type: type, amount: amount, date: dateString });
+        localStorage.setItem('app_transactions', JSON.stringify(txs));
+    }
+</script>
+
+</body>
+</html>
